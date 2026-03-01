@@ -611,24 +611,8 @@
       <!-- CA -->
       <div class="ca-row">
         <span class="ca-lbl">CA</span>
-        <span class="ca-addr" id="ca-disp">—</span>
+        <span class="ca-addr" id="ca-disp">PASTE_YOUR_MINT_CA_HERE</span>
         <button class="copy-btn" onclick="copyCA()">COPY</button>
-      </div>
-
-      <!-- INPUT -->
-      <div class="input-area">
-        <div class="input-lbl">Token mint address</div>
-        <div class="input-row">
-          <input
-            class="ca-input"
-            id="ca-in"
-            type="text"
-            placeholder="Paste your mint address here..."
-            onkeydown="if(event.key==='Enter') load()"
-          />
-          <button class="go-btn" id="go-btn" onclick="load()">GO</button>
-        </div>
-        <div class="error-msg" id="err">⚠ Address not found. Check the contract address and try again.</div>
       </div>
     </div>
 
@@ -655,7 +639,9 @@
 </footer>
 
 <script>
-  let currentCA = '';
+  // ─── CONFIG ──────────────────────────────────────────
+  const MINT_CA = 'PASTE_YOUR_MINT_CA_HERE';
+  // ─────────────────────────────────────────────────────
 
   function fmt(n) {
     if (!n || isNaN(n)) return '—';
@@ -681,24 +667,14 @@
   }
 
   function copyCA() {
-    if (!currentCA) return;
-    navigator.clipboard.writeText(currentCA);
+    navigator.clipboard.writeText(MINT_CA);
     const b = document.querySelector('.copy-btn');
     b.textContent = 'COPIED';
     setTimeout(() => b.textContent = 'COPY', 1400);
   }
 
   async function load() {
-    const ca = document.getElementById('ca-in').value.trim();
-    if (!ca) return;
-
-    const btn = document.getElementById('go-btn');
-    const err = document.getElementById('err');
     const spin = document.getElementById('spin');
-
-    err.style.display = 'none';
-    btn.disabled = true;
-    btn.textContent = '...';
     spin.classList.add('on');
 
     ['st-mcap','st-vol','st-liq'].forEach(id => {
@@ -708,45 +684,39 @@
     });
 
     try {
-      const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${ca}`);
+      const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${MINT_CA}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       const pairs = data.pairs;
       if (!pairs || !pairs.length) throw new Error();
-
       const pair = pairs.find(p => p.dexId === 'raydium') || pairs[0];
-      currentCA = ca;
       render(pair);
     } catch {
-      err.style.display = 'block';
+      // silent — keeps showing last data or dashes
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'GO';
       spin.classList.remove('on');
     }
   }
 
   function render(p) {
-    const name   = p.baseToken?.name || '—';
-    const sym    = p.baseToken?.symbol || '—';
-    const img    = p.info?.imageUrl;
-    const price  = p.priceUsd;
-    const ch24   = p.priceChange?.h24;
-    const mcap   = p.marketCap || p.fdv;
-    const vol    = p.volume?.h24;
-    const liq    = p.liquidity?.usd;
+    const name  = p.baseToken?.name || '—';
+    const sym   = p.baseToken?.symbol || '—';
+    const img   = p.info?.imageUrl;
+    const price = p.priceUsd;
+    const ch24  = p.priceChange?.h24;
+    const mcap  = p.marketCap || p.fdv;
+    const vol   = p.volume?.h24;
+    const liq   = p.liquidity?.usd;
 
-    // identity
     document.getElementById('tok-name').textContent = name;
     document.getElementById('tok-sym').textContent = '$ ' + sym;
     document.getElementById('tok-price').textContent = fmtPrice(price);
-    document.getElementById('ca-disp').textContent = currentCA.slice(0,8) + '...' + currentCA.slice(-6);
+    document.getElementById('ca-disp').textContent = MINT_CA.slice(0,8) + '...' + MINT_CA.slice(-6);
 
     const chEl = document.getElementById('tok-change');
     chEl.textContent = fmtChg(ch24);
     chEl.className = 't-change ' + (ch24 > 0 ? 'up' : ch24 < 0 ? 'dn' : '');
 
-    // logo
     const imgEl = document.getElementById('tok-img');
     if (img) {
       imgEl.innerHTML = `<img src="${img}" alt="${name}" onerror="this.parentElement.innerHTML='⬡'"/>`;
@@ -754,7 +724,6 @@
       imgEl.innerHTML = sym.slice(0,1);
     }
 
-    // stats
     setStat('st-mcap', fmt(mcap));
     setStat('st-vol', fmt(vol));
     setStat('st-liq', fmt(liq));
@@ -766,18 +735,9 @@
     el.classList.remove('loading');
   }
 
-  // URL param
-  window.addEventListener('DOMContentLoaded', () => {
-    const p = new URLSearchParams(window.location.search);
-    const ca = p.get('ca') || p.get('token');
-    if (ca) {
-      document.getElementById('ca-in').value = ca;
-      load();
-    }
-  });
-
-  // auto-refresh 30s
-  setInterval(() => { if (currentCA) load(); }, 30000);
+  // Load on open + refresh every 30s
+  window.addEventListener('DOMContentLoaded', load);
+  setInterval(load, 30000);
 </script>
 </body>
 </html>
