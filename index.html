@@ -54,10 +54,51 @@
     z-index: 0;
   }
 
+  /* BANNER */
+  .banner {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 200;
+    background: rgba(255, 204, 0, 0.07);
+    border-bottom: 1px solid rgba(255, 204, 0, 0.25);
+    color: rgba(255, 220, 80, 0.9);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 9px 48px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    backdrop-filter: blur(10px);
+  }
+
+  .banner-dot {
+    width: 6px; height: 6px;
+    background: #ffcc00;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: blink 1.2s ease-in-out infinite;
+  }
+
+  .banner-close {
+    position: absolute;
+    right: 20px;
+    background: none;
+    border: none;
+    color: rgba(255, 204, 0, 0.5);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0 4px;
+    transition: color 0.2s;
+  }
+  .banner-close:hover { color: #ffcc00; }
+
   /* NAV */
   nav {
     position: fixed;
-    top: 0; left: 0; right: 0;
+    top: 36px; left: 0; right: 0;
     z-index: 100;
     display: flex;
     align-items: center;
@@ -141,7 +182,7 @@
   main {
     position: relative;
     z-index: 1;
-    padding-top: 70px;
+    padding-top: 110px;
   }
 
   /* HERO */
@@ -739,6 +780,13 @@
 </style>
 </head>
 <body>
+
+<!-- MAINTENANCE BANNER -->
+<div class="banner">
+  <span class="banner-dot"></span>
+  The dashboard is currently being updated — some data may be temporarily inaccurate. The Percolator engine remains fully operational.
+  <button class="banner-close" onclick="this.parentElement.style.display='none'">✕</button>
+</div>
 
 <div class="glow-top"></div>
 
