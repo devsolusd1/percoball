@@ -570,6 +570,99 @@
     margin-left: auto;
   }
 
+  /* POOL MILESTONE */
+  .pool-milestone {
+    width: 100%;
+    max-width: 520px;
+    margin: 16px auto 0;
+    background: var(--surface);
+    border: 1px solid rgba(0, 255, 136, 0.35);
+    padding: 22px 24px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pool-milestone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at top left, rgba(0,255,136,0.07) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .pool-milestone::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+  }
+
+  .pool-milestone-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .pool-milestone-icon { font-size: 18px; }
+
+  .pool-milestone-tag {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--green);
+    border: 1px solid rgba(0,255,136,0.4);
+    padding: 3px 10px;
+  }
+
+  .pool-milestone-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, var(--text), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+    line-height: 1;
+  }
+
+  .pool-milestone-desc {
+    font-size: 11px;
+    line-height: 1.8;
+    color: var(--muted);
+    margin-bottom: 16px;
+    letter-spacing: 0.03em;
+  }
+
+  .pool-tx-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .pool-tx-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .pool-tx-hash {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    text-decoration: none;
+    word-break: break-all;
+    transition: opacity 0.2s;
+  }
+
+  .pool-tx-hash:hover { opacity: 0.7; }
+
   /* LOCKED LIQUIDITY ANNOUNCEMENT */
   .liq-announce {
     width: 100%;
@@ -1088,6 +1181,28 @@
         <span class="eb-dot"></span>
         <span class="eb-label">Last Settle</span>
         <span class="eb-val" id="eb-settle">—</span>
+      </div>
+    </div>
+
+    <!-- POOL CREATED MILESTONE -->
+    <div class="pool-milestone fade d3">
+      <div class="pool-milestone-top">
+        <span class="pool-milestone-icon">⚡</span>
+        <span class="pool-milestone-tag">LIVE</span>
+      </div>
+      <div class="pool-milestone-title">Liquidity Pool Created</div>
+      <div class="pool-milestone-desc">
+        The first official PERC/SOL liquidity pool has been deployed on-chain.
+        Trading is now live and open to everyone.
+      </div>
+      <div class="pool-tx-row">
+        <span class="pool-tx-label">Creation TX</span>
+        <a class="pool-tx-hash"
+           href="https://solscan.io/tx/2ALfXgjEQnSV5ybm2AwtioJUZpVXepCP9W4umRG97x5vRHKMDBjSWKz5nWNnYjMPbPUeeZmc9894dH5yfPLcnj3H"
+           target="_blank"
+           rel="noopener">
+          2ALfXgj...cnj3H ↗
+        </a>
       </div>
     </div>
 
