@@ -1060,7 +1060,7 @@
       const data = await res.json();
       const pairs = data.pairs;
       if (!pairs || !pairs.length) throw new Error();
-      const pair = pairs.find(p => p.dexId === 'raydium') || pairs[0];
+      const pair = pairs.sort((a,b) => (b.liquidity?.usd||0) - (a.liquidity?.usd||0))[0];
       render(pair);
     } catch {
       // silent — keeps showing last data or dashes
@@ -1107,11 +1107,10 @@
 
     // — Protocol metrics derived from real data —
 
-    // Fees: Raydium charges 0.25% per swap.
-    // We estimate all-time fees using vol24 as daily baseline × 14-day age factor
-    // plus weighted contrib from h6 and h1 for recency.
-    const ageDays  = 14; // conservative estimate of token age in days
-    const feeRate  = 0.0025;
+    // Fees: Pump.fun charges 1% per swap on bonding curve + 0.25% post-migration.
+    // Estimate all-time fees using vol24 as daily baseline × age factor.
+    const ageDays  = 14;
+    const feeRate  = 0.01;
     const volProxy = vol24 * ageDays + vol6 * 0.5 + vol1 * 0.1;
     const fees     = volProxy * feeRate;
 
@@ -1200,11 +1199,12 @@
   }
 
   // ─── SUPPLY DATA (Solana RPC) ─────────────────────────
+  // Pump.fun burns reduce the mint's total supply directly via token burn instruction.
+  // So: circulating = current getTokenSupply, burned = TOTAL_MINT - current supply.
   const TOTAL_MINT = 1_000_000_000;
-  const BURN_ADDR  = '1nc1nerator11111111111111111111111111111111';
 
   function fmtSupply(n) {
-    if (!n || isNaN(n)) return '—';
+    if (n === null || n === undefined || isNaN(n)) return '—';
     if (n >= 1e9) return (n/1e9).toFixed(3) + 'B';
     if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
     if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
@@ -1213,10 +1213,9 @@
 
   async function loadSupply() {
     try {
-      // Fetch token supply from Solana mainnet RPC
       const rpc = 'https://api.mainnet-beta.solana.com';
 
-      const supplyRes = await fetch(rpc, {
+      const res = await fetch(rpc, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1225,57 +1224,36 @@
           params: [MINT_CA]
         })
       });
-      const supplyData = await supplyRes.json();
-      const supplyRaw = supplyData?.result?.value?.uiAmount;
-      if (!supplyRaw) return;
 
-      // Fetch burned tokens (balance of burn address for this mint)
-      const burnRes = await fetch(rpc, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0', id: 2,
-          method: 'getTokenAccountsByOwner',
-          params: [
-            BURN_ADDR,
-            { mint: MINT_CA },
-            { encoding: 'jsonParsed' }
-          ]
-        })
-      });
-      const burnData = await burnRes.json();
-      const burnAccounts = burnData?.result?.value || [];
-      let burned = 0;
-      burnAccounts.forEach(acc => {
-        const amt = acc?.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
-        if (amt) burned += amt;
-      });
+      const data = await res.json();
+      const val  = data?.result?.value;
+      if (!val) throw new Error('no supply data');
 
-      // Current supply = TOTAL_MINT - burned (burned tokens reduce supply)
-      const circulating = Math.max(0, TOTAL_MINT - burned);
-      const burnedPct    = (burned / TOTAL_MINT * 100);
-      const circPct      = (circulating / TOTAL_MINT * 100);
+      // uiAmount = current circulating supply (already accounts for any burns)
+      const circulating = val.uiAmount ?? (parseInt(val.amount) / Math.pow(10, val.decimals));
+      const burned      = Math.max(0, TOTAL_MINT - circulating);
+      const burnedPct   = (burned / TOTAL_MINT * 100);
+      const circPct     = (circulating / TOTAL_MINT * 100);
 
-      document.getElementById('sup-circ').textContent      = fmtSupply(circulating);
-      document.getElementById('sup-circ-pct').textContent  = circPct.toFixed(2) + '% of mint';
-      document.getElementById('sup-burned').textContent    = burned > 0 ? fmtSupply(burned) : '0';
+      document.getElementById('sup-circ').textContent       = fmtSupply(Math.round(circulating));
+      document.getElementById('sup-circ-pct').textContent   = circPct.toFixed(2) + '% of mint';
+      document.getElementById('sup-burned').textContent     = burned > 0 ? fmtSupply(Math.round(burned)) : '0';
       document.getElementById('sup-burned-pct').textContent = burnedPct.toFixed(4) + '% destroyed';
-      document.getElementById('sup-defl').textContent      = burnedPct > 0 ? '-' + burnedPct.toFixed(4) + '%' : '0%';
+      document.getElementById('sup-defl').textContent       = burnedPct > 0 ? '-' + burnedPct.toFixed(4) + '%' : '0%';
 
-      // Animate bars
       setTimeout(() => {
-        document.getElementById('bar-circ').style.width   = circPct + '%';
-        document.getElementById('bar-burned').style.width = burnedPct + '%';
+        document.getElementById('bar-circ').style.width   = Math.min(circPct, 100) + '%';
+        document.getElementById('bar-burned').style.width = Math.min(burnedPct, 100) + '%';
       }, 300);
 
     } catch {
-      // silent fallback — show static values if RPC fails
-      document.getElementById('sup-circ').textContent     = fmtSupply(TOTAL_MINT);
-      document.getElementById('sup-circ-pct').textContent = '100% of mint';
-      document.getElementById('sup-burned').textContent   = '0';
-      document.getElementById('sup-burned-pct').textContent = '0% destroyed';
-      document.getElementById('sup-defl').textContent     = '0%';
-      document.getElementById('bar-circ').style.width     = '100%';
+      // Fallback: show full supply, 0 burned
+      document.getElementById('sup-circ').textContent       = '1.000B';
+      document.getElementById('sup-circ-pct').textContent   = '100.00% of mint';
+      document.getElementById('sup-burned').textContent     = '0';
+      document.getElementById('sup-burned-pct').textContent = '0.0000% destroyed';
+      document.getElementById('sup-defl').textContent       = '0%';
+      document.getElementById('bar-circ').style.width       = '100%';
     }
   }
 
