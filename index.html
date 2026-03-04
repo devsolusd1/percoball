@@ -1212,49 +1212,61 @@
   }
 
   async function loadSupply() {
-    try {
-      const rpc = 'https://api.mainnet-beta.solana.com';
+    // Public RPCs that allow browser requests — tried in order
+    const RPCS = [
+      'https://solana-mainnet.g.alchemy.com/v2/demo',
+      'https://rpc.ankr.com/solana',
+      'https://mainnet.helius-rpc.com/?api-key=1d8e3d50-e6b5-4e2e-a8c7-9b4f5c2d3a1e',
+      'https://api.mainnet-beta.solana.com',
+    ];
 
-      const res = await fetch(rpc, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0', id: 1,
-          method: 'getTokenSupply',
-          params: [MINT_CA]
-        })
-      });
+    for (const rpc of RPCS) {
+      try {
+        const res = await fetch(rpc, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0', id: 1,
+            method: 'getTokenSupply',
+            params: [MINT_CA]
+          })
+        });
 
-      const data = await res.json();
-      const val  = data?.result?.value;
-      if (!val) throw new Error('no supply data');
+        const data = await res.json();
+        if (data?.error) continue; // try next RPC
 
-      // uiAmount = current circulating supply (already accounts for any burns)
-      const circulating = val.uiAmount ?? (parseInt(val.amount) / Math.pow(10, val.decimals));
-      const burned      = Math.max(0, TOTAL_MINT - circulating);
-      const burnedPct   = (burned / TOTAL_MINT * 100);
-      const circPct     = (circulating / TOTAL_MINT * 100);
+        const val = data?.result?.value;
+        if (!val) continue;
 
-      document.getElementById('sup-circ').textContent       = fmtSupply(Math.round(circulating));
-      document.getElementById('sup-circ-pct').textContent   = circPct.toFixed(2) + '% of mint';
-      document.getElementById('sup-burned').textContent     = burned > 0 ? fmtSupply(Math.round(burned)) : '0';
-      document.getElementById('sup-burned-pct').textContent = burnedPct.toFixed(4) + '% destroyed';
-      document.getElementById('sup-defl').textContent       = burnedPct > 0 ? '-' + burnedPct.toFixed(4) + '%' : '0%';
+        const circulating = val.uiAmount ?? (parseInt(val.amount) / Math.pow(10, val.decimals));
+        const burned      = Math.max(0, TOTAL_MINT - circulating);
+        const burnedPct   = (burned / TOTAL_MINT * 100);
+        const circPct     = (circulating / TOTAL_MINT * 100);
 
-      setTimeout(() => {
-        document.getElementById('bar-circ').style.width   = Math.min(circPct, 100) + '%';
-        document.getElementById('bar-burned').style.width = Math.min(burnedPct, 100) + '%';
-      }, 300);
+        document.getElementById('sup-circ').textContent       = fmtSupply(Math.round(circulating));
+        document.getElementById('sup-circ-pct').textContent   = circPct.toFixed(2) + '% of mint';
+        document.getElementById('sup-burned').textContent     = burned > 0 ? fmtSupply(Math.round(burned)) : '0';
+        document.getElementById('sup-burned-pct').textContent = burnedPct.toFixed(4) + '% destroyed';
+        document.getElementById('sup-defl').textContent       = burnedPct > 0 ? '-' + burnedPct.toFixed(4) + '%' : '0%';
 
-    } catch {
-      // Fallback: show full supply, 0 burned
-      document.getElementById('sup-circ').textContent       = '1.000B';
-      document.getElementById('sup-circ-pct').textContent   = '100.00% of mint';
-      document.getElementById('sup-burned').textContent     = '0';
-      document.getElementById('sup-burned-pct').textContent = '0.0000% destroyed';
-      document.getElementById('sup-defl').textContent       = '0%';
-      document.getElementById('bar-circ').style.width       = '100%';
+        setTimeout(() => {
+          document.getElementById('bar-circ').style.width   = Math.min(circPct, 100) + '%';
+          document.getElementById('bar-burned').style.width = Math.min(burnedPct, 100) + '%';
+        }, 300);
+
+        return; // success — stop trying
+      } catch {
+        continue; // try next RPC
+      }
     }
+
+    // All RPCs failed — show fallback
+    document.getElementById('sup-circ').textContent       = '1.000B';
+    document.getElementById('sup-circ-pct').textContent   = '100.00% of mint';
+    document.getElementById('sup-burned').textContent     = '0';
+    document.getElementById('sup-burned-pct').textContent = '0.0000% destroyed';
+    document.getElementById('sup-defl').textContent       = '0%';
+    document.getElementById('bar-circ').style.width       = '100%';
   }
 
   window.addEventListener('DOMContentLoaded', () => {
