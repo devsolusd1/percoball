@@ -570,6 +570,116 @@
     margin-left: auto;
   }
 
+  /* LOCKED LIQUIDITY ANNOUNCEMENT */
+  .liq-announce {
+    width: 100%;
+    max-width: 520px;
+    margin: 16px auto 0;
+    background: var(--surface);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    padding: 28px 28px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .liq-announce::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at top center, rgba(0,229,255,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .liq-announce::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--green), var(--accent), transparent);
+    animation: shimmerLine 3s linear infinite;
+  }
+
+  @keyframes shimmerLine {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .liq-announce-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .liq-icon { font-size: 20px; }
+
+  .liq-tag {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(0,229,255,0.4);
+    padding: 4px 12px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .liq-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, var(--text), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .liq-desc {
+    font-size: 11px;
+    line-height: 1.85;
+    color: var(--muted);
+    margin-bottom: 20px;
+    letter-spacing: 0.03em;
+  }
+
+  .liq-desc strong {
+    color: var(--text);
+    -webkit-text-fill-color: var(--text);
+  }
+
+  .liq-footer {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .liq-footer-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .liq-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
   /* PERCOLATOR BADGE */
   .perc-badge {
     margin-top: 28px;
@@ -978,6 +1088,25 @@
         <span class="eb-dot"></span>
         <span class="eb-label">Last Settle</span>
         <span class="eb-val" id="eb-settle">—</span>
+      </div>
+    </div>
+
+    <!-- LOCKED LIQUIDITY ANNOUNCEMENT -->
+    <div class="liq-announce fade d3">
+      <div class="liq-announce-top">
+        <span class="liq-icon">🔒</span>
+        <span class="liq-tag">COMING SOON</span>
+      </div>
+      <div class="liq-title">Locked Liquidity Injection</div>
+      <div class="liq-desc">
+        A liquidity injection is scheduled to be permanently locked into the protocol —
+        once added, it <strong>cannot be removed</strong> by anyone, ever.
+        Fully on-chain. Trustless. Enforced by the Percolator risk engine.
+      </div>
+      <div class="liq-footer">
+        <span class="liq-footer-item"><span class="liq-dot green-dot"></span> Engine ready</span>
+        <span class="liq-footer-item"><span class="liq-dot green-dot"></span> Vault prepared</span>
+        <span class="liq-footer-item"><span class="liq-dot"></span> Injection pending</span>
       </div>
     </div>
 
