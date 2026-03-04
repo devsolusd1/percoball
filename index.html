@@ -626,7 +626,110 @@
   .d2 { animation-delay: 0.2s; }
   .d3 { animation-delay: 0.3s; }
 
-  @media (max-width: 600px) {
+  /* SUPPLY SECTION */
+  .supply-block {
+    width: 100%;
+    max-width: 520px;
+    margin: 16px auto 0;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    overflow: hidden;
+  }
+
+  .supply-block::before {
+    content: '';
+    display: block;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+  }
+
+  .supply-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px 10px;
+  }
+
+  .supply-title {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .supply-mint-total {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .supply-mint-total span {
+    color: var(--accent);
+  }
+
+  .supply-bar-wrap {
+    padding: 0 20px 6px;
+  }
+
+  .supply-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: var(--border2);
+    border-radius: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .supply-bar-circ {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+
+  .supply-bar-burned {
+    position: absolute;
+    right: 0; top: 0;
+    height: 100%;
+    background: rgba(255, 68, 85, 0.5);
+    transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+
+  .supply-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 10px 20px 16px;
+    gap: 0;
+  }
+
+  .supply-stat { }
+
+  .supply-stat-label {
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .supply-stat-val {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .supply-stat-val.circ { color: var(--accent); }
+  .supply-stat-val.burned { color: #ff4455; }
+  .supply-stat-val.pct { color: var(--green); }
+
+  .supply-stat-sub {
+    font-size: 8px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* RESPONSIVE */
     nav { padding: 14px 20px; }
     .nav-tag { display: none; }
     .hero { padding: 40px 20px 30px; }
@@ -764,6 +867,37 @@
         <div class="proto-sub">All passed · Kani verified</div>
       </div>
 
+    </div>
+
+    <!-- SUPPLY INFO -->
+    <div class="supply-block fade d3">
+      <div class="supply-header">
+        <span class="supply-title">Token Supply</span>
+        <span class="supply-mint-total">Total Mint: <span>1,000,000,000</span></span>
+      </div>
+      <div class="supply-bar-wrap">
+        <div class="supply-bar-bg">
+          <div class="supply-bar-circ" id="bar-circ"></div>
+          <div class="supply-bar-burned" id="bar-burned"></div>
+        </div>
+      </div>
+      <div class="supply-row">
+        <div class="supply-stat">
+          <div class="supply-stat-label">Circulating</div>
+          <div class="supply-stat-val circ" id="sup-circ">—</div>
+          <div class="supply-stat-sub" id="sup-circ-pct">—% of mint</div>
+        </div>
+        <div class="supply-stat">
+          <div class="supply-stat-label">Burned</div>
+          <div class="supply-stat-val burned" id="sup-burned">—</div>
+          <div class="supply-stat-sub" id="sup-burned-pct">—% destroyed</div>
+        </div>
+        <div class="supply-stat">
+          <div class="supply-stat-label">Deflation</div>
+          <div class="supply-stat-val pct" id="sup-defl">—</div>
+          <div class="supply-stat-sub">supply reduced</div>
+        </div>
+      </div>
     </div>
 
     <!-- ENGINE STATUS BAR -->
@@ -1017,14 +1151,96 @@
     requestAnimationFrame(step);
   }
 
+  // ─── SUPPLY DATA (Solana RPC) ─────────────────────────
+  const TOTAL_MINT = 1_000_000_000;
+  const BURN_ADDR  = '1nc1nerator11111111111111111111111111111111';
+
+  function fmtSupply(n) {
+    if (!n || isNaN(n)) return '—';
+    if (n >= 1e9) return (n/1e9).toFixed(3) + 'B';
+    if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+    if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+    return n.toLocaleString();
+  }
+
+  async function loadSupply() {
+    try {
+      // Fetch token supply from Solana mainnet RPC
+      const rpc = 'https://api.mainnet-beta.solana.com';
+
+      const supplyRes = await fetch(rpc, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0', id: 1,
+          method: 'getTokenSupply',
+          params: [MINT_CA]
+        })
+      });
+      const supplyData = await supplyRes.json();
+      const supplyRaw = supplyData?.result?.value?.uiAmount;
+      if (!supplyRaw) return;
+
+      // Fetch burned tokens (balance of burn address for this mint)
+      const burnRes = await fetch(rpc, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0', id: 2,
+          method: 'getTokenAccountsByOwner',
+          params: [
+            BURN_ADDR,
+            { mint: MINT_CA },
+            { encoding: 'jsonParsed' }
+          ]
+        })
+      });
+      const burnData = await burnRes.json();
+      const burnAccounts = burnData?.result?.value || [];
+      let burned = 0;
+      burnAccounts.forEach(acc => {
+        const amt = acc?.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+        if (amt) burned += amt;
+      });
+
+      // Current supply = TOTAL_MINT - burned (burned tokens reduce supply)
+      const circulating = Math.max(0, TOTAL_MINT - burned);
+      const burnedPct    = (burned / TOTAL_MINT * 100);
+      const circPct      = (circulating / TOTAL_MINT * 100);
+
+      document.getElementById('sup-circ').textContent      = fmtSupply(circulating);
+      document.getElementById('sup-circ-pct').textContent  = circPct.toFixed(2) + '% of mint';
+      document.getElementById('sup-burned').textContent    = burned > 0 ? fmtSupply(burned) : '0';
+      document.getElementById('sup-burned-pct').textContent = burnedPct.toFixed(4) + '% destroyed';
+      document.getElementById('sup-defl').textContent      = burnedPct > 0 ? '-' + burnedPct.toFixed(4) + '%' : '0%';
+
+      // Animate bars
+      setTimeout(() => {
+        document.getElementById('bar-circ').style.width   = circPct + '%';
+        document.getElementById('bar-burned').style.width = burnedPct + '%';
+      }, 300);
+
+    } catch {
+      // silent fallback — show static values if RPC fails
+      document.getElementById('sup-circ').textContent     = fmtSupply(TOTAL_MINT);
+      document.getElementById('sup-circ-pct').textContent = '100% of mint';
+      document.getElementById('sup-burned').textContent   = '0';
+      document.getElementById('sup-burned-pct').textContent = '0% destroyed';
+      document.getElementById('sup-defl').textContent     = '0%';
+      document.getElementById('bar-circ').style.width     = '100%';
+    }
+  }
+
   window.addEventListener('DOMContentLoaded', () => {
     updateSettle();
-    load(); // load() → render() → seeds live{} and triggers countUp
+    load();
+    loadSupply();
   });
 
   setInterval(updateMetrics, 4000);
   setInterval(updateSettle, 1000);
   setInterval(load, 30000);
+  setInterval(loadSupply, 60000); // refresh supply every 60s
 </script>
 </body>
 </html>
