@@ -59,9 +59,9 @@
     position: fixed;
     top: 0; left: 0; right: 0;
     z-index: 200;
-    background: rgba(255, 204, 0, 0.07);
-    border-bottom: 1px solid rgba(255, 204, 0, 0.25);
-    color: rgba(255, 220, 80, 0.9);
+    background: rgba(0, 255, 136, 0.07);
+    border-bottom: 1px solid rgba(0, 255, 136, 0.25);
+    color: rgba(0, 255, 136, 0.9);
     font-family: 'Space Mono', monospace;
     font-size: 10px;
     letter-spacing: 0.08em;
@@ -76,7 +76,7 @@
 
   .banner-dot {
     width: 6px; height: 6px;
-    background: #ffcc00;
+    background: var(--green);
     border-radius: 50%;
     flex-shrink: 0;
     animation: blink 1.2s ease-in-out infinite;
@@ -87,13 +87,13 @@
     right: 20px;
     background: none;
     border: none;
-    color: rgba(255, 204, 0, 0.5);
+    color: rgba(0, 255, 136, 0.4);
     font-size: 11px;
     cursor: pointer;
     padding: 0 4px;
     transition: color 0.2s;
   }
-  .banner-close:hover { color: #ffcc00; }
+  .banner-close:hover { color: var(--green); }
 
   /* NAV */
   nav {
@@ -784,7 +784,7 @@
 <!-- MAINTENANCE BANNER -->
 <div class="banner">
   <span class="banner-dot"></span>
-  The dashboard is currently being updated — some data may be temporarily inaccurate. The Percolator engine remains fully operational.
+  Dashboard updated — all systems operational. Live data is now fully synced.
   <button class="banner-close" onclick="this.parentElement.style.display='none'">✕</button>
 </div>
 
@@ -1055,7 +1055,7 @@
     });
 
     try {
-      const res = await fetch(`https://.dexscreener.com/latest/dex/tokens/${MINT_CA}`);
+      const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${MINT_CA}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       const pairs = data.pairs;
